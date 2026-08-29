@@ -1,5 +1,7 @@
 # WhereAmI
 
+https://anttiluode.github.io/WhereAmI/
+
 > **Can we decode how a learned machine infers which world it is in, and how that belief changes the computation it performs?**
 
 This repo starts one level above [NeuralAlgorithmDecoding](https://github.com/anttiluode/NeuralAlgorithmDecoding).
