@@ -29,13 +29,15 @@ The name was accidental. It stayed because it asks the right first question.
 
 Gate 0 is now runnable on five seeds. With no context label, a 24-D GRU reaches `0.7596 ± 0.0023` accuracy versus `0.5808 ± 0.0032` for a memoryless predictor and `0.7608 ± 0.0024` for the exact Bayesian observer. Its hidden state linearly exposes the true context log-odds with `R² = 0.9956 ± 0.0005`. Fitting a tiny symmetric HMM back from neural behavior recovers `stay = 0.9503` (true `0.960`) and emission peak `0.5772` (true `0.580`).
 
-A first dynamics attacker also matters: shared affine hidden dynamics have held-out NMSE `0.1209`; adding only a context bias gives `0.1203`; context-specific affine operators give `0.0336`. That survives the first "it is only a bias" attack, but **does not yet earn a general situational-kernel claim** because the context-specific model has more parameters. See [`docs/GATE0_RESULT.md`](docs/GATE0_RESULT.md).
+Gate 0A then ran the equal-complexity control. Random/shuffled three-expert partitions stay at ~`0.121` NMSE, but **unlabeled k-means regions of hidden state reach `0.0341`**, essentially the same as the decoded-context experts (`0.0336`). The k-means regions align with decoded context mode at `95.5% ± 2.0%`. So the strong "special situational kernel" claim is **demoted**: this toy currently establishes context-separated state geometry plus local piecewise dynamics, not an extra operator switch beyond ordinary nonlinear regionalization. See [`docs/GATE0A_KERNEL_CONTROL.md`](docs/GATE0A_KERNEL_CONTROL.md).
+
+Gate 0B attacks a different and more practical possibility: can the compact persistence law be recovered from **sampled black-box choices only**? A direct multinomial fit succeeds in calibration. Across three trained GRUs, one sampled choice per queried prefix gives fitted stay `0.95397 ± 0.00165` versus `0.95618 ± 0.00243` from full soft outputs (world truth `0.960`). This is not yet an LLM benchmark or novelty claim; recent work already studies observable belief revision and regime change. The narrower possible instrument is **latent-regime persistence / hazard under controlled hidden-task switches**. See [`docs/GATE0B_BLACKBOX_PERSISTENCE.md`](docs/GATE0B_BLACKBOX_PERSISTENCE.md).
 
 ## Four sentences we do not silently change
 
-**QUESTION:** Can a learned recurrent system's hidden situational inference be decoded into a compact causal belief-update law plus a family of context-conditioned effective operators?
+**QUESTION:** Can a learned system's hidden situational inference be decoded into a compact causal belief-update law, and can any additional context-conditioned operator claim survive equal-complexity geometric attackers?
 
-**PAYOFF:** If yes, black-box decompilation can move from "what algorithm is this network running?" toward "which local algorithm did it load here, why, and how did evidence switch it?"
+**PAYOFF:** If yes, black-box decompilation can move from "what algorithm is this network running?" toward measuring which latent regime the machine behaves as though it is in, how quickly evidence changes that regime, and whether the resulting dynamics contain anything beyond ordinary state-space geometry.
 
 **FALSIFIER:** If ordinary output distillation / a context bias / a linear state probe explains the behavior as well as the proposed belief-and-operator story, the stronger "situational kernel" interpretation dies.
 
@@ -98,6 +100,8 @@ Run:
 ```bash
 pip install -r requirements.txt
 python experiments/gate0_hidden_world.py --seed 0
+python experiments/gate0a_kernel_controls.py
+python experiments/gate0b_sampled_persistence.py
 pytest -q
 ```
 
@@ -137,3 +141,23 @@ WHAT DO I DO HERE? operator <- K(q)
 ```
 
 and interventions that force the learned machine to follow that decoded abstraction.
+
+
+---
+
+## Current fork in the road
+
+The first round has now separated two claims rather than blending them:
+
+```text
+A. "context loads a special local operator"
+   -> NOT EARNED in Gate 0A
+   -> k-means state geometry explains the local-linear advantage
+
+B. "black-box behavior exposes an effective latent-regime persistence law"
+   -> SURVIVES synthetic output-only calibration
+   -> must now be tested on actual sequence/chat models
+```
+
+The prompt-injection analogy is **not** a result. Benign task switching and adversarial instruction hijacking are different mechanisms; any relation between fitted persistence and injection susceptibility has to be measured rather than assumed.
+

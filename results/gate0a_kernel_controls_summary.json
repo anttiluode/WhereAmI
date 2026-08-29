@@ -1,0 +1,13 @@
+{
+  "n_seeds": 5,
+  "metrics": {
+    "shared_affine_nmse": {"mean": 0.1208576872, "std": 0.0058267189},
+    "decoded_context_experts_nmse": {"mean": 0.0335736085, "std": 0.0017435631},
+    "shuffled_context_experts_nmse": {"mean": 0.1211034223, "std": 0.0057893017},
+    "random_partition_experts_nmse_mean": {"mean": 0.1211299267, "std": 0.0058460004},
+    "kmeans_hidden_experts_nmse": {"mean": 0.0341193289, "std": 0.0021979210},
+    "pca_tercile_experts_nmse": {"mean": 0.0649625219, "std": 0.0036327820},
+    "kmeans_vs_decoded_context_best_perm_accuracy": {"mean": 0.9548355263, "std": 0.0202392161}
+  },
+  "verdict": "k-means hidden-state partition matches decoded-context local dynamics; strong separate situational-kernel claim demoted"
+}

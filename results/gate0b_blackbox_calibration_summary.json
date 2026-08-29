@@ -1,0 +1,28 @@
+{
+  "calibration": "Gate-0 GRU; sampled choices only for the sampled interface",
+  "n_model_seeds": 3,
+  "true_world": {"stay": 0.96, "emission_peak": 0.58},
+  "soft_output_fit": {
+    "stay_mean": 0.9561757681,
+    "stay_std": 0.0024277271,
+    "emission_peak_mean": 0.5795381186,
+    "emission_peak_std": 0.0022243913
+  },
+  "one_sample_per_prefix_fit": {
+    "stay_mean": 0.9539742396,
+    "stay_std_across_model_seeds": 0.0016504174,
+    "emission_peak_mean": 0.5846083333,
+    "emission_peak_std_across_model_seeds": 0.0018689307,
+    "prefixes_per_model_run": 3072,
+    "repetitions_per_model_seed": 3
+  },
+  "seed0_budget_example": {
+    "queried_prefixes": 384,
+    "samples_per_prefix": 1,
+    "stay_mean": 0.9559744747,
+    "stay_std_over_10_sampling_repetitions": 0.0062799741,
+    "emission_peak_mean": 0.5862733915,
+    "emission_peak_std_over_10_sampling_repetitions": 0.0291879880
+  },
+  "warning": "synthetic calibration only; no cross-vendor LLM claim yet"
+}
