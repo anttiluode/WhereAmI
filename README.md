@@ -56,6 +56,50 @@ https://anttiluode.github.io/WhereAmI/
 
 ---
 
+
+
+## Saturday side experiment — Pulsing Transformer Dream
+
+A frozen pretrained ViT-MAE is deliberately misused as an iterative visual dynamical system:
+
+```text
+image
+  -> transformer with per-layer residual gains g_l(t)
+  -> MAE pixel reconstruction
+  -> blend back into image
+  -> feed it through again
+  -> repeat
+```
+
+The weights do not train. Instead, each encoder block's learned update is multiplied at inference time:
+
+```text
+h_next = h + g_l(t) * (B_l(h) - h)
+```
+
+The GUI includes ALL PASS, traveling WAVE, MIDDLE boost, ALTERNATE and STROBE schedules plus masking/noise/blend controls.
+
+Windows:
+
+```bat
+run_pulsing_dream.bat
+```
+
+Manual:
+
+```bash
+pip install -r requirements_dream.txt
+python experiments/pulsing_vit_mae_dream.py
+```
+
+See [`docs/PULSING_TRANSFORMER_DREAM.md`](docs/PULSING_TRANSFORMER_DREAM.md).
+
+This is intentionally not called a technical diffusion model. The question is simply:
+
+> **What dynamics appear when a frozen learned visual transform repeatedly consumes its own reconstruction while its normal depth execution pulses?**
+
+---
+
 ## Current receipt
 
 Gate 0 is now runnable on five seeds. With no context label, a 24-D GRU reaches `0.7596 ± 0.0023` accuracy versus `0.5808 ± 0.0032` for a memoryless predictor and `0.7608 ± 0.0024` for the exact Bayesian observer. Its hidden state linearly exposes the true context log-odds with `R² = 0.9956 ± 0.0005`. Fitting a tiny symmetric HMM back from neural behavior recovers `stay = 0.9503` (true `0.960`) and emission peak `0.5772` (true `0.580`).
