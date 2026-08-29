@@ -1,0 +1,20 @@
+{
+  "n_seeds": 5,
+  "seeds": [0, 1, 2, 3, 4],
+  "true_world": {"true_stay": 0.96, "true_emission_peak": 0.58},
+  "training": {"steps": 500, "batch_size": 128, "seq_len": 64, "hidden_size": 24},
+  "metrics": {
+    "memoryless_accuracy": {"mean": 0.5808125, "std": 0.0031718173},
+    "network_accuracy": {"mean": 0.7595581055, "std": 0.0022925633},
+    "bayes_accuracy": {"mean": 0.7607828776, "std": 0.0024035163},
+    "belief_kl": {"mean": 0.0053022848, "std": 0.0011075319},
+    "hidden_logodds_r2": {"mean": 0.9955724725, "std": 0.0005086814},
+    "fit_stay": {"mean": 0.95025, "std": 0.0017139137},
+    "fit_emission_peak": {"mean": 0.5772, "std": 0.0023874673},
+    "intervention_l1": {"mean": 0.0473794134, "std": 0.0063010103},
+    "shared_affine_nmse": {"mean": 0.1208576859, "std": 0.0058267218},
+    "context_bias_nmse": {"mean": 0.1202826230, "std": 0.0057924013},
+    "context_specific_nmse": {"mean": 0.0335736063, "std": 0.0017435633},
+    "context_specific_vs_shared": {"mean": 0.2777728443, "std": 0.0037692710}
+  }
+}
