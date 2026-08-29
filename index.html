@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sparse Pulse Cells — WhereAmI</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#071016;--panel:#0d1922;--panel2:#101f2a;--ink:#e8f5f7;--muted:#86a2ac;
+    --line:#1d3440;--accent:#70f0d2;--a:#60d8ff;--b:#ffbe55;--c:#ff6fa8;--probe:#f5f7ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{overflow:hidden}
+  button,input{font:inherit}
+  .shell{height:100%;display:grid;grid-template-rows:auto 1fr}
+  header{
+    display:flex;align-items:center;gap:18px;padding:13px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0b1720,#08131a);min-height:72px
+  }
+  .title{min-width:280px}
+  .title h1{font-size:18px;margin:0 0 3px;font-weight:750;letter-spacing:.02em}
+  .title p{margin:0;color:var(--muted);font-size:12px}
+  .controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  button{
+    border:1px solid #2b4755;background:#10232e;color:var(--ink);border-radius:9px;padding:8px 10px;
+    cursor:pointer;transition:.12s transform,.12s background,.12s border-color
+  }
+  button:hover{background:#16303d;border-color:#426475}
+  button:active{transform:translateY(1px)}
+  button.primary{background:#133b39;border-color:#2c7f73}
+  button.a{border-color:#3e8ba6} button.b{border-color:#9d7434} button.c{border-color:#9f4769}
+  .toggle{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;padding:0 5px}
+  .range{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+  .range input{width:92px}
+  main{min-height:0;display:grid;grid-template-columns:1fr 325px}
+  .stage{position:relative;min-width:0;min-height:0}
+  canvas{width:100%;height:100%;display:block;background:
+    radial-gradient(circle at 48% 42%,rgba(28,63,75,.24),transparent 38%),
+    linear-gradient(180deg,#071016,#050b0f)}
+  .legend{
+    position:absolute;left:14px;bottom:13px;display:flex;gap:12px;align-items:center;
+    background:rgba(6,14,19,.78);border:1px solid rgba(49,79,93,.7);border-radius:10px;
+    padding:8px 10px;font-size:11px;color:var(--muted);backdrop-filter:blur(8px)
+  }
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+  .dot.a{background:var(--a)} .dot.b{background:var(--b)} .dot.c{background:var(--c)} .dot.p{background:var(--probe)}
+  aside{
+    min-height:0;overflow:auto;border-left:1px solid var(--line);background:var(--panel);
+    padding:15px 14px 26px
+  }
+  .card{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:12px;margin-bottom:11px}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#a9c4cc;margin:0 0 9px}
+  .big{font-size:28px;font-weight:750;line-height:1}
+  .muted{color:var(--muted)}
+  .small{font-size:11px;line-height:1.5}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:#0b1821;border:1px solid #18313d;border-radius:9px;padding:9px}
+  .stat strong{display:block;font-size:17px}
+  .stat span{font-size:10px;color:var(--muted)}
+  .meter{height:6px;background:#081117;border-radius:999px;overflow:hidden;margin-top:7px}
+  .meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3e8fa1,#65f0ce);transition:width .15s}
+  .cell-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:6px 0;font-size:11px}
+  .swatch{width:9px;height:9px;border-radius:50%}
+  code{color:#b9f6e7;font-size:11px}
+  .trace{height:125px;overflow:auto;font:10px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#90abb4;background:#081117;border-radius:8px;padding:7px}
+  .trace b{color:#dff8f1}
+  .pill{display:inline-block;border:1px solid #294550;border-radius:999px;padding:3px 7px;margin:2px 2px 2px 0;font-size:10px;color:#a9c4cc}
+  .instruction{font-size:11px;line-height:1.5;color:#9db7c0}
+  .instruction strong{color:#e7f7f7}
+  @media(max-width:900px){
+    body{overflow:auto}.shell{height:auto;min-height:100%}header{align-items:flex-start;flex-direction:column}
+    main{grid-template-columns:1fr}.stage{height:64vh;min-height:470px}aside{border-left:0;border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <div class="title">
+    <h1>Sparse Pulse Cells</h1>
+    <p>fast state opens doors · slow consequence carves roads · the graph never resets</p>
+  </div>
+  <div class="controls">
+    <button class="a" id="primeA">Prime A</button>
+    <button class="b" id="primeB">Prime B</button>
+    <button class="c" id="primeC">Prime C</button>
+    <button class="primary" id="probe">Same probe</button>
+    <button id="burst">Train × 8</button>
+    <button id="pause">Pause</button>
+    <button id="clearFast">Clear fast state</button>
+    <button id="resetSlow">Reset roads</button>
+    <label class="toggle"><input id="learn" type="checkbox" checked> slow learning</label>
+    <label class="toggle"><input id="auto" type="checkbox"> auto traffic</label>
+    <label class="range">speed <input id="speed" type="range" min="0.45" max="2.4" value="1" step="0.05"></label>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <canvas id="c"></canvas>
+    <div class="legend">
+      <span><i class="dot a"></i>prime A</span>
+      <span><i class="dot b"></i>prime B</span>
+      <span><i class="dot c"></i>prime C</span>
+      <span><i class="dot p"></i>neutral probe</span>
+      <span>click cell = inspect · shift-click = reward target</span>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h2>The object</h2>
+      <div class="instruction">
+        <strong>Cells are persistent local computational objects.</strong> They do nothing between events.
+        A pulse changes only the cells it reaches. Their current state changes which outgoing edge wins.
+        Reward arrives later and slowly strengthens the edges that carried a successful pulse.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Try the door</h2>
+      <div class="instruction">
+        Click <strong>Prime A → Same probe</strong>. Then clear fast state and try
+        <strong>Prime B → Same probe</strong>. The probe is identical; only the state left by the earlier pulse differs.
+      </div>
+      <div style="margin-top:8px">
+        <span class="pill">fast state ≠ weights</span>
+        <span class="pill">sparse long axons</span>
+        <span class="pill">no episodes</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Network now</h2>
+      <div class="stats">
+        <div class="stat"><strong id="activePulses">0</strong><span>pulses in flight</span></div>
+        <div class="stat"><strong id="events">0</strong><span>cell events</span></div>
+        <div class="stat"><strong id="rewarded">0</strong><span>reward arrivals</span></div>
+        <div class="stat"><strong id="roads">0</strong><span>strengthened roads</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Selected cell</h2>
+      <div id="selectedName" class="big">—</div>
+      <div class="cell-row"><span>fast state</span><div class="meter"><i id="stateMeter"></i></div><code id="stateValue">0.00</code></div>
+      <div class="cell-row"><span>threshold</span><div class="meter"><i id="thresholdMeter"></i></div><code id="thresholdValue">—</code></div>
+      <div class="cell-row"><span>fires</span><span></span><code id="fireValue">—</code></div>
+      <div class="cell-row"><span>outgoing</span><span></span><code id="outValue">—</code></div>
+      <div class="small muted" id="selectedHint">Click any cell. Shift-click makes it the delayed-reward target.</div>
+    </div>
+
+    <div class="card">
+      <h2>Slow structure</h2>
+      <div class="small muted">Rewarded edges thicken. Unused edges remain available; the graph stays sparse.</div>
+      <div class="cell-row"><span>mean edge weight</span><span></span><code id="meanWeight">—</code></div>
+      <div class="cell-row"><span>max edge weight</span><span></span><code id="maxWeight">—</code></div>
+      <div class="cell-row"><span>reward target</span><span></span><code id="targetName">T</code></div>
+    </div>
+
+    <div class="card">
+      <h2>Event trace</h2>
+      <div id="trace" class="trace"></div>
+    </div>
+  </aside>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+const C = {
+  A:"#60d8ff", B:"#ffbe55", C:"#ff6fa8", P:"#f5f7ff",
+  idle:"#29404b", edge:"#19333e", strong:"#4c8d86", target:"#70f0d2"
+};
+
+function rngFactory(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rnd = rngFactory(808032);
+
+let W=0,H=0;
+function resize(){
+  const r=canvas.getBoundingClientRect();
+  W=Math.max(300,r.width); H=Math.max(300,r.height);
+  canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize); resize();
+
+const N=42;
+const cells=[];
+const edges=[];
+const edgeByPair=new Map();
+let selected=0;
+let rewardTarget=39;
+let paused=false, learn=true, auto=false, speed=1;
+let eventCount=0, rewardCount=0, autoClock=0, roads=0;
+let simTime=0;
+let pulseId=1;
+let pulses=[];
+let delayedBursts=[];
+
+function addCell(i,x,y,role){
+  cells.push({
+    i,x,y,role:role||"",state:0,threshold:0.47+rnd()*0.18,
+    excitability:(rnd()-.5)*0.12, fires:0,
+    receptors:[rnd()*2-1,rnd()*2-1,rnd()*2-1],
+    out:[]
+  });
+}
+
+// Sources on the left, targets on the right, ordinary cells everywhere else.
+addCell(0,.06,.27,"A");
+addCell(1,.06,.50,"B");
+addCell(2,.06,.73,"C");
+for(let i=3;i<N-3;i++){
+  let x=.14+rnd()*.70, y=.09+rnd()*.82;
+  // gentle anti-clumping
+  for(let k=0;k<12;k++){
+    let ok=true;
+    for(const c of cells){
+      if(Math.hypot(x-c.x,y-c.y)<.075){ok=false;break;}
+    }
+    if(ok)break;
+    x=.14+rnd()*.70; y=.09+rnd()*.82;
+  }
+  addCell(i,x,y,"");
+}
+addCell(N-3,.94,.25,"T₁");
+addCell(N-2,.94,.50,"T₂");
+addCell(N-1,.94,.75,"T₃");
+
+function addEdge(a,b,w,gate){
+  if(a===b)return;
+  const key=a+":"+b;
+  if(edgeByPair.has(key))return edgeByPair.get(key);
+  const e={
+    id:edges.length,a,b,w:w==null ? .18+rnd()*.18 : w,
+    base:w==null?null:w, gate:gate==null?(rnd()*2-1):gate,
+    used:0,rewarded:0,lastUse:-999
+  };
+  edges.push(e); cells[a].out.push(e.id); edgeByPair.set(key,e.id); return e.id;
+}
+
+// Sparse random long-range graph.
+for(let i=0;i<N;i++){
+  const degree=2+(rnd()<.6?1:0);
+  for(let k=0;k<degree;k++){
+    let b=Math.floor(rnd()*N);
+    if(b===i)b=(b+7)%N;
+    addEdge(i,b);
+  }
+}
+
+// Three hidden traversable backbones. They are not nearest-neighbour chains.
+const paths=[
+  [0,11,27,7,31,18,N-3],
+  [1,24,9,34,16,29,N-2],
+  [2,20,5,33,13,36,N-1]
+];
+paths.forEach(function(p,pi){
+  for(let k=0;k<p.length-1;k++) addEdge(p[k],p[k+1],.39, pi===0 ? .85 : pi===1 ? -.85 : .15);
+});
+// Cross-doors from the shared middle so priming can alter the neutral probe path.
+[
+  [11,24,.31,-.92],[11,20,.31,.92],
+  [24,27,.30,.85],[24,33,.30,-.85],
+  [20,9,.30,-.85],[20,31,.30,.85],
+  [27,34,.28,-.70],[9,31,.28,.70],[33,16,.28,-.70]
+].forEach(function(q){addEdge(q[0],q[1],q[2],q[3]);});
+
+const originalWeights=edges.map(function(e){return e.w;});
+
+function familyIndex(f){ return f==="A"?0:f==="B"?1:f==="C"?2:-1; }
+function colorFor(f){ return C[f]||C.P; }
+
+function log(msg){
+  const box=document.getElementById("trace");
+  const d=document.createElement("div");
+  d.innerHTML=msg;
+  box.prepend(d);
+  while(box.children.length>28)box.removeChild(box.lastChild);
+}
+
+function inject(source,family,amp,target,ttl){
+  const c=cells[source];
+  const p={
+    id:pulseId++,family,amp:amp==null?1:amp,
+    at:source,edge:null,progress:0,ttl:ttl==null?11:ttl,
+    trail:[],target:target==null?rewardTarget:target,born:simTime
+  };
+  pulses.push(p);
+  receive(p,source,true);
+}
+
+function receptorEffect(cell,family){
+  const fi=familyIndex(family);
+  if(fi<0)return 0.08; // neutral probe
+  return cell.receptors[fi]*0.24;
+}
+
+function edgeScore(edge,cell,pulse){
+  const stateGate = cell.state * edge.gate * .42;
+  const fi=familyIndex(pulse.family);
+  const familyGate = fi<0 ? 0 : cell.receptors[fi]*edge.gate*.08;
+  const useBias = Math.min(.12,edge.w*.18);
+  return edge.w + stateGate + familyGate + useBias;
+}
+
+function chooseEdges(cell,pulse){
+  if(!cell.out.length)return [];
+  const ranked=cell.out.map(function(id){return edges[id];})
+    .sort(function(a,b){return edgeScore(b,cell,pulse)-edgeScore(a,cell,pulse);});
+  const best=ranked[0];
+  const score=edgeScore(best,cell,pulse);
+  if(score < .10)return [];
+  const chosen=[best];
+  if(ranked[1] && edgeScore(ranked[1],cell,pulse)>score-.045 && Math.abs(cell.state)>.58) chosen.push(ranked[1]);
+  return chosen;
+}
+
+function receive(pulse,ci,isInjection){
+  const cell=cells[ci];
+  eventCount++;
+  const before=cell.state;
+  const incoming = pulse.amp + receptorEffect(cell,pulse.family);
+  // Event driven: state changes here and nowhere else.
+  cell.state=Math.max(-1,Math.min(1, .58*cell.state + .58*incoming + cell.excitability));
+  const drive=Math.abs(.72*cell.state + .28*incoming);
+  const fires=drive>cell.threshold || isInjection;
+  if(fires){
+    cell.fires++;
+    if(pulse.ttl<=0)return;
+    const outgoing=chooseEdges(cell,pulse);
+    outgoing.forEach(function(e,ix){
+      e.used++; e.lastUse=simTime;
+      const child={
+        id:pulseId++,family:pulse.family,
+        amp:Math.max(.32,pulse.amp*(.90-.08*ix)),
+        at:ci,edge:e.id,progress:0,ttl:pulse.ttl-1,
+        trail:pulse.trail.concat([e.id]),target:pulse.target,born:pulse.born
+      };
+      pulses.push(child);
+    });
+  }
+  if(Math.abs(cell.state-before)>.2 && ci===selected) updateInspector();
+}
+
+function reward(pulse,ci){
+  rewardCount++;
+  if(learn && pulse.trail.length){
+    const L=pulse.trail.length;
+    pulse.trail.forEach(function(id,k){
+      const e=edges[id];
+      const credit=.055*Math.exp(-(L-1-k)*.08);
+      e.w=Math.min(.92,e.w+credit*(1-e.w));
+      e.rewarded++;
+    });
+    // Reward also leaves a small local fast-state trace at the destination.
+    cells[ci].state=Math.min(1,cells[ci].state+.12);
+  }
+  log("<b>reward</b> reached "+cells[ci].role+" · path "+pulse.trail.length+" edges");
+}
+
+function advancePulse(p,dt){
+  if(p.edge==null) return false;
+  const e=edges[p.edge];
+  const a=cells[e.a], b=cells[e.b];
+  const dist=Math.hypot((b.x-a.x)*W,(b.y-a.y)*H);
+  p.progress += dt*(120*speed/Math.max(70,dist));
+  if(p.progress>=1){
+    p.at=e.b; p.edge=null; p.progress=0;
+    if(p.at===p.target){ reward(p,p.at); return true; }
+    receive(p,p.at,false);
+    return true;
+  }
+  return false;
+}
+
+function cleanPulses(dt){
+  const old=pulses;
+  pulses=[];
+  for(const p of old){
+    if(p.edge==null) continue;
+    const arrived=advancePulse(p,dt);
+    if(!arrived) pulses.push(p);
+  }
+}
+
+function prime(f){
+  const src=f==="A"?0:f==="B"?1:2;
+  const target=f==="A"?N-3:f==="B"?N-2:N-1;
+  inject(src,f,(f==="B"?-.92:.92),target,8);
+  log("<b>prime "+f+"</b> entered at cell "+src+" · weights unchanged");
+}
+function probe(){
+  // Always the exact same neutral event from source A.
+  inject(0,"P",.78,rewardTarget,12);
+  log("<b>same probe</b> injected · route depends on state already present");
+}
+function train(){
+  const f=["A","B","C"][Math.floor((simTime/1000)%3)];
+  const src=f==="A"?0:f==="B"?1:2;
+  const target=f==="A"?N-3:f==="B"?N-2:N-1;
+  for(let i=0;i<8;i++) delayedBursts.push({t:simTime+i*150,src,f,target});
+  log("<b>train × 8</b> scheduled for "+f+" → "+cells[target].role);
+}
+
+function clearFast(){
+  cells.forEach(function(c){c.state=0;});
+  pulses=[]; delayedBursts=[];
+  log("<b>fast state cleared</b> · slow roads preserved");
+}
+function resetSlow(){
+  edges.forEach(function(e,i){e.w=originalWeights[i];e.rewarded=0;e.used=0;});
+  roads=0; log("<b>slow roads reset</b> · fast cell state preserved");
+}
+
+document.getElementById("primeA").onclick=function(){prime("A");};
+document.getElementById("primeB").onclick=function(){prime("B");};
+document.getElementById("primeC").onclick=function(){prime("C");};
+document.getElementById("probe").onclick=probe;
+document.getElementById("burst").onclick=train;
+document.getElementById("pause").onclick=function(){paused=!paused;this.textContent=paused?"Resume":"Pause";};
+document.getElementById("clearFast").onclick=clearFast;
+document.getElementById("resetSlow").onclick=resetSlow;
+document.getElementById("learn").onchange=function(){learn=this.checked;};
+document.getElementById("auto").onchange=function(){auto=this.checked;};
+document.getElementById("speed").oninput=function(){speed=+this.value;};
+
+canvas.addEventListener("click",function(ev){
+  const r=canvas.getBoundingClientRect();
+  const x=ev.clientX-r.left,y=ev.clientY-r.top;
+  let best=-1,bd=22;
+  cells.forEach(function(c){
+    const d=Math.hypot(x-c.x*W,y-c.y*H);
+    if(d<bd){bd=d;best=c.i;}
+  });
+  if(best>=0){
+    if(ev.shiftKey){
+      rewardTarget=best;
+      log("<b>reward target</b> → cell "+best+(cells[best].role?" ("+cells[best].role+")":""));
+    }else selected=best;
+    updateInspector();
+  }
+});
+
+function stateColor(v){
+  if(v>.08)return "rgba(96,216,255,"+(0.18+Math.abs(v)*.72)+")";
+  if(v<-.08)return "rgba(255,111,168,"+(0.18+Math.abs(v)*.72)+")";
+  return "rgba(62,83,94,.72)";
+}
+
+function drawEdge(e){
+  const a=cells[e.a],b=cells[e.b];
+  const x1=a.x*W,y1=a.y*H,x2=b.x*W,y2=b.y*H;
+  const dx=x2-x1,dy=y2-y1;
+  const bend=((e.id%7)-3)*2.1;
+  const nx=-dy/(Math.hypot(dx,dy)+1e-6), ny=dx/(Math.hypot(dx,dy)+1e-6);
+  const cx=(x1+x2)/2+nx*bend, cy=(y1+y2)/2+ny*bend;
+  const hot=simTime-e.lastUse<380;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(cx,cy,x2,y2);
+  ctx.lineWidth=.55+e.w*2.7;
+  ctx.strokeStyle=hot?"rgba(112,240,210,.55)":"rgba(48,83,96,"+(0.16+e.w*.52)+")";
+  ctx.stroke();
+  // tiny direction marker
+  const t=.74, omt=1-t;
+  const px=omt*omt*x1+2*omt*t*cx+t*t*x2;
+  const py=omt*omt*y1+2*omt*t*cy+t*t*y2;
+  ctx.fillStyle=hot?"rgba(112,240,210,.7)":"rgba(93,123,134,.38)";
+  ctx.beginPath();ctx.arc(px,py,1.1+e.w,0,Math.PI*2);ctx.fill();
+}
+
+function edgePoint(e,t){
+  const a=cells[e.a],b=cells[e.b];
+  const x1=a.x*W,y1=a.y*H,x2=b.x*W,y2=b.y*H;
+  const dx=x2-x1,dy=y2-y1;
+  const bend=((e.id%7)-3)*2.1;
+  const nx=-dy/(Math.hypot(dx,dy)+1e-6), ny=dx/(Math.hypot(dx,dy)+1e-6);
+  const cx=(x1+x2)/2+nx*bend, cy=(y1+y2)/2+ny*bend;
+  const o=1-t;
+  return [o*o*x1+2*o*t*cx+t*t*x2,o*o*y1+2*o*t*cy+t*t*y2];
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // faint "space is not adjacency" rings
+  ctx.strokeStyle="rgba(44,77,88,.12)";ctx.lineWidth=1;
+  [0.18,0.31,0.44].forEach(function(r){
+    ctx.beginPath();ctx.arc(W*.49,H*.5,Math.min(W,H)*r,0,Math.PI*2);ctx.stroke();
+  });
+
+  edges.forEach(drawEdge);
+
+  // reward target halo
+  const rt=cells[rewardTarget];
+  ctx.beginPath();ctx.arc(rt.x*W,rt.y*H,17+3*Math.sin(simTime*.006),0,Math.PI*2);
+  ctx.strokeStyle="rgba(112,240,210,.55)";ctx.lineWidth=1.3;ctx.stroke();
+
+  // cells
+  cells.forEach(function(c){
+    const x=c.x*W,y=c.y*H;
+    const r=5.1+Math.abs(c.state)*3.4;
+    ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);
+    ctx.fillStyle=stateColor(c.state);ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=c.role==="A"?C.A:c.role==="B"?C.B:c.role==="C"?C.C:
+      c.role.indexOf("T")===0?"#70f0d2":"#b4c7cd";
+    ctx.globalAlpha=.48+Math.abs(c.state)*.48;ctx.fill();ctx.globalAlpha=1;
+    if(c.i===selected){
+      ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.strokeStyle="#f5f7ff";ctx.lineWidth=1;ctx.stroke();
+    }
+    if(c.role){
+      ctx.fillStyle="rgba(225,245,247,.85)";ctx.font="10px ui-monospace,monospace";
+      ctx.fillText(c.role,x+9,y-8);
+    }
+  });
+
+  // pulses on top
+  pulses.forEach(function(p){
+    if(p.edge==null)return;
+    const pt=edgePoint(edges[p.edge],Math.max(0,Math.min(1,p.progress)));
+    ctx.shadowBlur=14;ctx.shadowColor=colorFor(p.family);
+    ctx.fillStyle=colorFor(p.family);
+    ctx.beginPath();ctx.arc(pt[0],pt[1],p.family==="P"?4.2:3.3,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+  });
+}
+
+function updateInspector(){
+  const c=cells[selected];
+  document.getElementById("selectedName").textContent="cell "+c.i+(c.role?" · "+c.role:"");
+  document.getElementById("stateValue").textContent=c.state.toFixed(2);
+  document.getElementById("thresholdValue").textContent=c.threshold.toFixed(2);
+  document.getElementById("fireValue").textContent=c.fires;
+  document.getElementById("outValue").textContent=c.out.length;
+  document.getElementById("stateMeter").style.width=(Math.abs(c.state)*100).toFixed(0)+"%";
+  document.getElementById("thresholdMeter").style.width=(c.threshold*100).toFixed(0)+"%";
+  document.getElementById("selectedHint").textContent=
+    "gate profile: "+c.out.map(function(id){const e=edges[id];return cells[e.b].i+" / "+e.w.toFixed(2);}).join("  ·  ");
+  document.getElementById("targetName").textContent="cell "+rewardTarget+(cells[rewardTarget].role?" · "+cells[rewardTarget].role:"");
+}
+
+function updateStats(){
+  document.getElementById("activePulses").textContent=pulses.length;
+  document.getElementById("events").textContent=eventCount;
+  document.getElementById("rewarded").textContent=rewardCount;
+  roads=edges.filter(function(e,i){return e.w-originalWeights[i]>.035;}).length;
+  document.getElementById("roads").textContent=roads;
+  const ws=edges.map(function(e){return e.w;});
+  document.getElementById("meanWeight").textContent=(ws.reduce(function(a,b){return a+b;},0)/ws.length).toFixed(3);
+  document.getElementById("maxWeight").textContent=Math.max.apply(null,ws).toFixed(3);
+  updateInspector();
+}
+
+let last=performance.now(),statsClock=0;
+function frame(now){
+  let dt=Math.min(40,now-last); last=now;
+  if(!paused){
+    simTime+=dt*speed;
+    // scheduled trains
+    for(let i=delayedBursts.length-1;i>=0;i--){
+      const q=delayedBursts[i];
+      if(simTime>=q.t){
+        inject(q.src,q.f,.9,q.target,11); delayedBursts.splice(i,1);
+      }
+    }
+    if(auto){
+      autoClock+=dt*speed;
+      if(autoClock>820){
+        autoClock=0;
+        const f=["A","B","C"][Math.floor(rnd()*3)];
+        const src=f==="A"?0:f==="B"?1:2;
+        const target=f==="A"?N-3:f==="B"?N-2:N-1;
+        inject(src,f,.88,target,11);
+      }
+    }
+    cleanPulses(dt);
+  }
+  draw();
+  statsClock+=dt;
+  if(statsClock>160){statsClock=0;updateStats();}
+  requestAnimationFrame(frame);
+}
+
+updateInspector(); updateStats();
+log("<b>graph ready</b> · 42 persistent cells · "+edges.length+" directed axons");
+log("Try <b>Prime A → Same probe</b>, then clear fast state and compare <b>Prime B → Same probe</b>.");
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

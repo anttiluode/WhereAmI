@@ -25,6 +25,35 @@ action / prediction
 
 The name was accidental. It stayed because it asks the right first question.
 
+
+## Visual demo — Sparse Pulse Cells
+
+The repository root now contains a standalone `index.html` for GitHub Pages.
+
+> **A sparse, continuously running graph of stateful computational cells.**
+
+The demo makes two timescales visible:
+
+```text
+pulse train
+    -> fast local cell state
+    -> state-dependent route / door
+
+successful delayed consequence
+    -> slow edge reinforcement
+    -> persistent road
+```
+
+Try `Prime A -> Same probe`, clear only fast state, then `Prime B -> Same probe`.
+The neutral probe is identical; only the state left by the preceding pulse changes.
+Repeated rewarded trains slowly thicken the long-range routes that delivered them.
+
+When Pages is enabled from the repository root, the intended URL is:
+
+https://anttiluode.github.io/WhereAmI/
+
+---
+
 ## Current receipt
 
 Gate 0 is now runnable on five seeds. With no context label, a 24-D GRU reaches `0.7596 ± 0.0023` accuracy versus `0.5808 ± 0.0032` for a memoryless predictor and `0.7608 ± 0.0024` for the exact Bayesian observer. Its hidden state linearly exposes the true context log-odds with `R² = 0.9956 ± 0.0005`. Fitting a tiny symmetric HMM back from neural behavior recovers `stay = 0.9503` (true `0.960`) and emission peak `0.5772` (true `0.580`).
