@@ -4,6 +4,7 @@ import argparse
 import math
 import queue
 import threading
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -32,7 +33,21 @@ class PulsingMAE:
         for p in self.model.parameters():
             p.requires_grad_(False)
 
-        self.layers = list(self.model.vit.encoder.layer)
+        # Transformers changed ViT-MAE internals: current releases expose
+        # encoder blocks as model.vit.layers; older releases used encoder.layer.
+        if hasattr(self.model.vit, "layers"):
+            self.layers = list(self.model.vit.layers)
+            self.layer_layout = "vit.layers"
+        elif hasattr(self.model.vit, "encoder") and hasattr(self.model.vit.encoder, "layer"):
+            self.layers = list(self.model.vit.encoder.layer)
+            self.layer_layout = "vit.encoder.layer"
+        else:
+            names = [name for name, _ in self.model.vit.named_children()]
+            raise AttributeError(
+                "Could not locate ViT-MAE encoder blocks. "
+                f"vit children are: {names}"
+            )
+
         self.gains = [1.0] * len(self.layers)
         self.handles = []
         self.last_signature = None
@@ -254,7 +269,10 @@ class DreamApp:
             try:
                 self.result_queue.put(("engine", PulsingMAE(self.model_name, self.device)))
             except Exception as exc:
-                self.result_queue.put(("engine_error", repr(exc)))
+                tb = traceback.format_exc()
+                print("\n=== Pulsing Transformer Dream: model initialization failed ===")
+                print(tb)
+                self.result_queue.put(("engine_error", f"{exc!r}\n\n{tb}"))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -408,7 +426,7 @@ class DreamApp:
                     self.start_btn.config(state=tk.NORMAL)
                     self.step_btn.config(state=tk.NORMAL)
                     self.status.config(
-                        text=f"Ready · {len(self.engine.layers)} pulsing encoder blocks · {self.device}",
+                        text=f"Ready · {len(self.engine.layers)} pulsing encoder blocks · {self.engine.layer_layout} · {self.device}",
                         foreground="#70f0d2",
                     )
                     self._draw_gains([1.0] * len(self.engine.layers))
