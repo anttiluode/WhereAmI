@@ -161,3 +161,25 @@ B. "black-box behavior exposes an effective latent-regime persistence law"
 
 The prompt-injection analogy is **not** a result. Benign task switching and adversarial instruction hijacking are different mechanisms; any relation between fitted persistence and injection susceptibility has to be measured rather than assumed.
 
+
+
+---
+
+## Gate 0C — ready for real black boxes
+
+The repo now includes an API-neutral hidden-mode benchmark exporter and scorer:
+
+```bash
+python experiments/gate0c_export_chat_benchmark.py --trials 16 --turns 24
+
+# collect {id, choice} JSONL rows with any model, then:
+python experiments/gate0c_score_choices.py \
+  benchmarks/gate0c_hidden_mode.jsonl \
+  responses/my_model.jsonl
+```
+
+The prompts do **not** reveal the true persistence or evidence reliability. The scorer uses sampled choices only and reports ordinary switch accuracy alongside the fitted latent-regime parameters.
+
+See [`docs/GATE0C_CHAT_PROTOCOL.md`](docs/GATE0C_CHAT_PROTOCOL.md).
+
+This is where the next evidence has to come from. Until actual model runs exist, Gate 0B remains a synthetic calibration result.
